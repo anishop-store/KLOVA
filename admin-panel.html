@@ -353,8 +353,23 @@ tr:hover td{background:#0a0a0a}
       <div class="field"><label>Date</label><input type="date" id="sale-date"/></div>
     </div>
     <div class="two-col">
-      <div class="field"><label>Sales Amount ($)</label><input type="number" id="sale-amount" placeholder="0.00" step="0.01"/></div>
-      <div class="field"><label>Refunds ($)</label><input type="number" id="sale-refunds" placeholder="0.00" step="0.01"/></div>
+      <div class="field"><label>Product Name</label><input type="text" id="sale-product" placeholder="e.g. Anime Drawing Mastery"/></div>
+      <div class="field"><label>Product Price ($)</label><input type="number" id="sale-price" placeholder="97" step="0.01" oninput="calcSalePreview()"/></div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>Digistore Commission (%)</label><input type="number" id="sale-commission" placeholder="75" step="1" oninput="calcSalePreview()"/></div>
+      <div class="field"><label>Number of Sales</label><input type="number" id="sale-count" placeholder="1" step="1" oninput="calcSalePreview()"/></div>
+    </div>
+    <div class="field"><label>Refunds ($)</label><input type="number" id="sale-refunds" placeholder="0.00" step="0.01" oninput="calcSalePreview()"/></div>
+    <!-- LIVE CALC PREVIEW -->
+    <div id="sale-preview" style="background:#050505;border:0.5px solid #1a1a1a;border-radius:10px;padding:1rem;margin:1rem 0;display:none">
+      <div style="font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Live Calculation</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">
+        <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#1a6fff" id="prev-total">$0</div><div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px">Total Commission</div></div>
+        <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#ff4444" id="prev-refunds">-$0</div><div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px">Refunds</div></div>
+        <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#f5c842" id="prev-creator">$0</div><div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px">Creator 80%</div></div>
+        <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#00c853" id="prev-you">$0</div><div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px">You 20%</div></div>
+      </div>
     </div>
     <button class="submit-btn green" onclick="saveSale()">+ Add Sales Entry</button>
   </div>
@@ -365,8 +380,7 @@ tr:hover td{background:#0a0a0a}
       <table>
         <thead>
           <tr>
-            <th>Date</th><th>Creator</th><th>Sales</th><th>Refunds</th>
-            <th>Net</th><th>Creator 80%</th><th>You 20%</th><th>Paid</th><th></th>
+            <th>Date</th><th>Creator</th><th>Product</th><th>Price</th><th>CB%</th><th>Sales</th><th>Commission</th><th>Refunds</th><th>Creator 80%</th><th>You 20%</th><th>Paid</th><th></th>
           </tr>
         </thead>
         <tbody id="sales-table-body"></tbody>
@@ -379,8 +393,8 @@ tr:hover td{background:#0a0a0a}
 <!-- ═══════════════════════════════════════════════════ TID TESTER TAB -->
 <div class="tab-content" id="tab-tid">
   <div class="panel">
-    <div class="panel-title">TID Link Tester</div>
-    <div class="field"><label>ClickBank Hoplink</label><input type="text" id="tid-hoplink" placeholder="nick.productname.hop.clickbank.net"/></div>
+    <div class="panel-title">Digistore24 Link Tester</div>
+    <div class="field"><label>Digistore24 Affiliate Link</label><input type="text" id="tid-hoplink" placeholder="www.digistore24.com/redir/12345/yourname/"/></div>
     <div class="field"><label>Creator Name</label><input type="text" id="tid-creator" placeholder="e.g. john"/></div>
     <div class="quick-btns">
       <div style="font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;width:100%;margin-bottom:4px">Quick test names:</div>
@@ -636,7 +650,7 @@ function renderCreatorList(){
       <div class="li-icon">👤</div>
       <div class="li-info">
         <div class="li-title">${c.name} ${c.tiktok?'· '+c.tiktok:''}</div>
-        <div class="li-sub">${c.niche} · ${c.followers||'?'} followers · TID: tid=${encodeURIComponent(c.name)}</div>
+        <div class="li-sub">${c.niche} · ${c.followers||'?'} followers · aff_sub=${encodeURIComponent(c.name)}</div>
         <div style="font-size:11px;color:#1a6fff;margin-top:3px;word-break:break-all">${c.link}</div>
       </div>
       <div class="li-actions">
@@ -666,20 +680,44 @@ function updateSaleCreatorDropdown(){
   sel.value = val;
 }
 
+function calcSalePreview(){
+  const price = parseFloat(document.getElementById('sale-price').value) || 0;
+  const commission = parseFloat(document.getElementById('sale-commission').value) || 0;
+  const count = parseInt(document.getElementById('sale-count').value) || 0;
+  const refunds = parseFloat(document.getElementById('sale-refunds').value) || 0;
+  if(price<=0||commission<=0||count<=0){document.getElementById('sale-preview').style.display='none';return}
+  const totalCommission = +(price * (commission/100) * count).toFixed(2);
+  const net = +(totalCommission - refunds).toFixed(2);
+  const creatorEarns = +(net * 0.8).toFixed(2);
+  const youEarn = +(net * 0.2).toFixed(2);
+  document.getElementById('sale-preview').style.display='block';
+  document.getElementById('prev-total').textContent = '$'+totalCommission;
+  document.getElementById('prev-refunds').textContent = '-$'+refunds.toFixed(2);
+  document.getElementById('prev-creator').textContent = '$'+creatorEarns;
+  document.getElementById('prev-you').textContent = '$'+youEarn;
+}
+
 function saveSale(){
   const creator = document.getElementById('sale-creator').value;
   const date = document.getElementById('sale-date').value;
-  const amount = parseFloat(document.getElementById('sale-amount').value) || 0;
+  const product = document.getElementById('sale-product').value.trim();
+  const price = parseFloat(document.getElementById('sale-price').value) || 0;
+  const commission = parseFloat(document.getElementById('sale-commission').value) || 0;
+  const count = parseInt(document.getElementById('sale-count').value) || 0;
   const refunds = parseFloat(document.getElementById('sale-refunds').value) || 0;
   if(!creator){alert('Select a creator');return}
   if(!date){alert('Select a date');return}
-  if(amount<=0){alert('Enter a valid sales amount');return}
+  if(price<=0){alert('Enter product price');return}
+  if(commission<=0){alert('Enter commission %');return}
+  if(count<=0){alert('Enter number of sales');return}
 
-  const net = amount - refunds;
+  const totalCommission = +(price * (commission/100) * count).toFixed(2);
+  const net = +(totalCommission - refunds).toFixed(2);
   const entry = {
     id: Date.now(),
-    date, creator, amount, refunds,
-    net, creatorEarns: +(net*0.8).toFixed(2),
+    date, creator, product, price, commission, count, refunds,
+    totalCommission, net,
+    creatorEarns: +(net*0.8).toFixed(2),
     youEarn: +(net*0.2).toFixed(2),
     paid: false
   };
@@ -687,8 +725,8 @@ function saveSale(){
   localStorage.setItem('as_sales', JSON.stringify(sales));
   renderSalesTab();
   showToast('✅ Sale entry added!');
-  document.getElementById('sale-amount').value='';
-  document.getElementById('sale-refunds').value='';
+  ['sale-product','sale-price','sale-commission','sale-count','sale-refunds'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sale-preview').style.display='none';
 }
 
 function togglePaid(id){
@@ -728,9 +766,12 @@ function renderSalesTab(){
     <tr>
       <td>${s.date}</td>
       <td>${s.creator}</td>
-      <td>$${s.amount.toFixed(2)}</td>
-      <td style="color:#ff4444">-$${s.refunds.toFixed(2)}</td>
-      <td>$${s.net.toFixed(2)}</td>
+      <td>${s.product||'—'}</td>
+      <td>$${(s.price||0).toFixed(2)}</td>
+      <td>${s.commission||0}%</td>
+      <td>${s.count||1}</td>
+      <td>$${(s.totalCommission||s.amount||0).toFixed(2)}</td>
+      <td style="color:#ff4444">-$${(s.refunds||0).toFixed(2)}</td>
       <td style="color:#f5c842">$${s.creatorEarns.toFixed(2)}</td>
       <td style="color:#00c853">$${s.youEarn.toFixed(2)}</td>
       <td><button class="paid-badge ${s.paid?'yes':'no'}" onclick="togglePaid(${s.id})">${s.paid?'✓ PAID':'UNPAID'}</button></td>
@@ -749,17 +790,17 @@ function testTid(){
   const creator = document.getElementById('tid-creator').value.trim();
   if(!hoplink||!creator){alert('Fill in both fields');return}
 
-  const buyUrl = 'https://'+hoplink+'/?tid='+encodeURIComponent(creator);
+  const buyUrl = 'https://'+hoplink+'/?aff_sub='+encodeURIComponent(creator);
   const shareLink = 'https://'+STORE_URL+'?creator='+encodeURIComponent(creator);
 
   document.getElementById('tid-buy-url').textContent = buyUrl;
-  document.getElementById('tid-tracking-id').textContent = 'tid='+creator;
+  document.getElementById('tid-tracking-id').textContent = 'aff_sub='+creator;
   document.getElementById('tid-share-link').textContent = shareLink;
   document.getElementById('tid-result').classList.add('show');
 
   document.getElementById('flow-creator').textContent = creator;
   document.getElementById('flow-share').textContent = shareLink.replace('https://','');
-  document.getElementById('flow-tid').textContent = 'tid='+creator;
+  document.getElementById('flow-tid').textContent = 'aff_sub='+creator;
   document.getElementById('flow-cb').textContent = hoplink;
   document.getElementById('flow-diagram').style.display='flex';
 }
